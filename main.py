@@ -1,8 +1,19 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, Query
 from fastapi.responses import FileResponse
 import httpx
 
+from google import genai
+import json
+
+import os
+from dotenv import load_dotenv
+
 app = FastAPI()
+
+load_dotenv()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+print(f"Chiave API caricata: {'Sì' if GEMINI_API_KEY else 'No'}")
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 WMO_CODES = {
     0: ("Soleggiato", "sun"), 1: ("Quasi Sereno", "cloud-sun"), 2: ("Parz. Nuvoloso", "cloud-sun"),
@@ -40,12 +51,15 @@ async def get_weather(lat: float, lon: float, name: str, admin: str = "", countr
         curr = w_data["current"]
         daily = w_data["daily"]
         condizione, icona = WMO_CODES.get(curr["weather_code"], ("Sconosciuto", "help-circle"))
+        temperatura = round(curr["temperature_2m"])
+
+        consigli = await get_ai_tips(name, condizione, temperatura)
 
         return {
             "citta": name,
             "regione": admin,
             "paese": country,
-            "temp": round(curr["temperature_2m"]),
+            "temp": temperatura,
             "percepita": round(curr["apparent_temperature"]),
             "umidita": curr["relative_humidity_2m"],
             "vento": curr["wind_speed_10m"],
@@ -53,9 +67,90 @@ async def get_weather(lat: float, lon: float, name: str, admin: str = "", countr
             "icona": icona,
             "max": round(daily["temperature_2m_max"][0]),
             "min": round(daily["temperature_2m_min"][0]),
-            "lat": lat, "lon": lon
+            "lat": lat, "lon": lon,
+            "tips": consigli
         }
 
 @app.get("/")
 async def read_index():
     return FileResponse('index.html')
+
+
+def get_tips(condition, temp):
+    # Logica per suggerimenti basati sul meteo
+    if "Pioggia" in condition or "Temporale" in condition or "Pioggerellina" in condition:
+        return [
+            {"icon": "library", "text": "Visita un museo o una mostra d'arte locale."},
+            {"icon": "coffee", "text": "Momento perfetto per un caffè o una cioccolata calda."},
+            {"icon": "clapperboard", "text": "Che ne dici di un film al cinema?"}
+        ]
+    elif temp > 25:
+        return [
+            {"icon": "palmtree", "text": "Fa caldo! Cerca un parco ombroso o una piscina."},
+            {"icon": "ice-cream", "text": "È l'ora di un gelato artigianale."},
+            {"icon": "droplets", "text": "Ricordati di bere molta acqua!"}
+        ]
+    elif temp < 10:
+        return [
+            {"icon": "home", "text": "Fa freddo. Meglio attività indoor o shopping al chiuso."},
+            {"icon": "utensils", "text": "Goditi un piatto caldo tipico della zona."},
+            {"icon": "thermometer-sun", "text": "Copriti bene prima di uscire!"}
+        ]
+    else: # Tempo mite / Sereno
+        return [
+            {"icon": "map", "text": "Tempo perfetto per una passeggiata in centro."},
+            {"icon": "camera", "text": "La luce è ottima per fare delle foto ai monumenti."},
+            {"icon": "bike", "text": "Noleggia una bici e goditi il panorama."}
+        ]
+
+
+    
+
+async def get_ai_tips(citta, condizione, temp):
+    prompt = f"""
+    Meteo a {citta}: {condizione}, {temp}°C.
+    REGOLE:
+    1. Suggerisci esattamente 3 attività diverse e reali da fare in questa città.
+    2. Rispondi SOLO con un array JSON.
+    3. Usa solo queste icone: camera, shopping-bag, coffee, museum, palmtree, utensils, bike, library.
+
+    FORMATO RICHIESTO:
+    [
+      {{"icon": "icona1", "text": "consiglio 1"}},
+      {{"icon": "icona2", "text": "consiglio 2"}},
+      {{"icon": "icona3", "text": "consiglio 3"}}
+    ]
+    """
+
+    try:
+        # Usiamo il sistema di configurazione per forzare un ARRAY di 3 oggetti
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-lite",
+            contents=prompt,
+            config={
+                'response_mime_type': 'application/json',
+                # Specifichiamo che vogliamo una LISTA di oggetti
+                'response_schema': {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "icon": {"type": "string"},
+                            "text": {"type": "string"}
+                        },
+                        "required": ["icon", "text"]
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                }
+            }
+        )
+        
+        tips = json.loads(response.text)
+        
+        # Se per qualche motivo ne arrivano meno, aggiungiamo un controllo
+        return tips if isinstance(tips, list) else [tips]
+    
+    except Exception as e:
+        print(f"Errore AI: {e}")
+        return get_tips(condizione, temp)

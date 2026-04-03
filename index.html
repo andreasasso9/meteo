@@ -147,6 +147,13 @@
 
             <!-- Mappa -->
             <div id="map"></div>
+
+            <div id="tipsContainer" class="mt-6 border-t border-white/10 pt-6 hidden">
+                <h3 class="text-xs font-bold uppercase tracking-widest text-indigo-300 mb-4">Cosa fare oggi</h3>
+                <div id="tipsList" class="space-y-3">
+                    <!-- I suggerimenti verranno inseriti qui -->
+                </div>
+            </div>
         </div>
     </div>
 
@@ -210,6 +217,27 @@
                     resDiv.classList.remove('hidden');
                     lucide.createIcons();
                     updateMap(data.lat, data.lon);
+
+                    // Gestione Consigli
+                    const tipsContainer = document.getElementById('tipsContainer');
+                    const tipsList = document.getElementById('tipsList');
+
+                    tipsList.innerHTML = ''
+                    
+                    if (data.tips && Array.isArray(data.tips)) {
+                        // Cicliamo su ogni elemento dell'array 'tips'
+                        tipsList.innerHTML = data.tips.map(tip => `
+                            <div class="flex items-center gap-4 bg-white/5 p-3 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
+                                <div class="bg-indigo-500/20 p-2 rounded-lg">
+                                    <i data-lucide="${tip.icon}" class="w-5 h-5 text-indigo-300"></i>
+                                </div>
+                                <p class="text-sm font-medium text-white/90 leading-tight">${tip.text}</p>
+                            </div>
+                        `).join('');
+                        
+                        tipsContainer.classList.remove('hidden');
+                        lucide.createIcons();
+                    }
                 }
             } catch (err) { stato.innerText = "Errore di connessione"; }
         }
