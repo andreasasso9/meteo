@@ -14,7 +14,6 @@ app = FastAPI()
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-print(f"Chiave API caricata: {'Sì' if GEMINI_API_KEY else 'No'}")
 client = genai.Client(api_key=GEMINI_API_KEY)
 
 WMO_CODES = {
@@ -73,7 +72,7 @@ async def get_weather(lat: float, lon: float, name: str, admin: str = "", countr
                 "icona": ico
             })
 
-        consigli = await get_ai_tips(name, condizione, temperatura)
+        consigli = await get_ai_tips(name, condizione, temperatura, forecast_orario)
 
         return {
             "citta": name,
@@ -127,9 +126,9 @@ def get_tips(condition, temp):
 
     
 
-async def get_ai_tips(citta, condizione, temp):
+async def get_ai_tips(citta, condizione, temp, hourly):
     prompt = f"""
-    Meteo a {citta}: {condizione}, {temp}°C.
+    Meteo a {citta}: {condizione}, {temp}°C, {hourly}.
     REGOLE:
     1. Suggerisci esattamente 3 attività diverse e reali da fare in questa città.
     2. Rispondi SOLO con un array JSON.
