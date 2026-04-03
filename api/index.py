@@ -8,6 +8,8 @@ import json
 import os
 from dotenv import load_dotenv
 
+import datetime
+
 app = FastAPI()
 
 load_dotenv()
@@ -44,14 +46,32 @@ async def get_weather(lat: float, lon: float, name: str, admin: str = "", countr
         weather_url = (
             f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
             f"&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m"
+            f"&hourly=temperature_2m,weather_code"
             f"&daily=temperature_2m_max,temperature_2m_min&timezone=auto"
         )
         w_res = await client.get(weather_url)
         w_data = w_res.json()
         curr = w_data["current"]
+        hourly = w_data["hourly"]
         daily = w_data["daily"]
         condizione, icona = WMO_CODES.get(curr["weather_code"], ("Sconosciuto", "help-circle"))
         temperatura = round(curr["temperature_2m"])
+
+        now_hour = datetime.datetime.now().hour
+
+        forecast_orario = []
+        for i in range(now_hour, now_hour + 8):
+            time_str = hourly["time"][i] # Formato "2023-10-27T14:00"
+            ora = time_str.split("T")[1][:5] # Prende solo "14:00"
+            
+            codice_wmo = hourly["weather_code"][i]
+            cond, ico = WMO_CODES.get(codice_wmo, ("Sereno", "sun"))
+            
+            forecast_orario.append({
+                "ora": ora,
+                "temp": round(hourly["temperature_2m"][i]),
+                "icona": ico
+            })
 
         consigli = await get_ai_tips(name, condizione, temperatura)
 
@@ -68,7 +88,8 @@ async def get_weather(lat: float, lon: float, name: str, admin: str = "", countr
             "max": round(daily["temperature_2m_max"][0]),
             "min": round(daily["temperature_2m_min"][0]),
             "lat": lat, "lon": lon,
-            "tips": consigli
+            "tips": consigli,
+            "hourly": forecast_orario
         }
 
 @app.get("/")

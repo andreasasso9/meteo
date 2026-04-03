@@ -69,6 +69,17 @@
 
         /* Nasconde la scrollbar della mappa */
         .leaflet-control-attribution { font-size: 8px !important; }
+
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .hourly-card {
+            min-width: 70px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
     </style>
 </head>
 <body class="antialiased">
@@ -111,6 +122,14 @@
             <!-- Temperatura -->
             <div class="text-center my-6">
                 <div class="text-8xl sm:text-9xl font-black tracking-tighter inline-block" id="temp">0°</div>
+            </div>
+
+            <!-- Sezione Previsioni Orarie -->
+            <div id="hourlyContainer" class="mt-8 hidden">
+                <h3 class="text-[10px] font-bold uppercase tracking-widest text-indigo-300 mb-4 ml-1">Previsioni prossime ore</h3>
+                <div id="hourlyList" class="flex gap-4 overflow-x-auto pb-4 no-scrollbar scroll-smooth">
+                    <!-- Card orarie caricate da JS -->
+                </div>
             </div>
 
             <!-- Griglia Info (Dettagli) -->
@@ -156,6 +175,8 @@
             </div>
         </div>
     </div>
+
+    
 
     <script>
         lucide.createIcons();
@@ -212,6 +233,20 @@
                     document.getElementById('vento').innerText = `${data.vento} km/h`;
                     document.getElementById('range').innerText = `${data.max}° / ${data.min}°`;
                     document.getElementById('weatherIcon').innerHTML = `<i data-lucide="${data.icona}" class="w-14 h-14 text-indigo-300"></i>`;
+                    const hourlyContainer = document.getElementById('hourlyContainer');
+                    const hourlyList = document.getElementById('hourlyList');
+                    
+                    if (data.hourly && data.hourly.length > 0) {
+                        hourlyList.innerHTML = data.hourly.map(h => `
+                            <div class="hourly-card rounded-2xl p-3 flex flex-col items-center gap-2">
+                                <span class="text-[10px] text-white/50 font-medium">${h.ora}</span>
+                                <i data-lucide="${h.icona}" class="w-6 h-6 text-indigo-300"></i>
+                                <span class="text-sm font-bold">${h.temp}°</span>
+                            </div>
+                        `).join('');
+        
+                        hourlyContainer.classList.remove('hidden');
+                    }
 
                     stato.classList.add('hidden');
                     resDiv.classList.remove('hidden');
