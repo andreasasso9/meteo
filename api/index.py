@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI
 from fastapi.responses import FileResponse
 import httpx
 
@@ -8,7 +8,6 @@ import json
 import os
 from dotenv import load_dotenv
 
-import datetime
 
 app = FastAPI()
 
@@ -56,21 +55,27 @@ async def get_weather(lat: float, lon: float, name: str, admin: str = "", countr
         condizione, icona = WMO_CODES.get(curr["weather_code"], ("Sconosciuto", "help-circle"))
         temperatura = round(curr["temperature_2m"])
 
-        now_hour = datetime.datetime.now().hour
+        now_hour = curr["time"]
+
+        try:
+            start_index = hourly["time"].index(now_hour)
+        except ValueError:
+            start_index = 0  # Se non troviamo l'ora esatta, partiamo dall'inizio
 
         forecast_orario = []
-        for i in range(now_hour, now_hour + 8):
-            time_str = hourly["time"][i] # Formato "2023-10-27T14:00"
-            ora = time_str.split("T")[1][:5] # Prende solo "14:00"
-            
-            codice_wmo = hourly["weather_code"][i]
-            cond, ico = WMO_CODES.get(codice_wmo, ("Sereno", "sun"))
-            
-            forecast_orario.append({
-                "ora": ora,
-                "temp": round(hourly["temperature_2m"][i]),
-                "icona": ico
-            })
+        for i in range(start_index, start_index + 8):
+            if i < len(hourly["time"]):
+                time_str = hourly["time"][i]
+                ora = time_str.split("T")[1][:5]  # Prende "14:00"
+                
+                codice_wmo = hourly["weather_code"][i]
+                _, ico = WMO_CODES.get(codice_wmo, ("Sereno", "sun"))
+                
+                forecast_orario.append({
+                    "ora": ora,
+                    "temp": round(hourly["temperature_2m"][i]),
+                    "icona": ico
+                })
 
         consigli = await get_ai_tips(name, condizione, temperatura, forecast_orario)
 
