@@ -80,6 +80,25 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
+
+        /* Di base le frecce sono trasparenti e non cliccabili */
+        .arrow-btn {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Quando passi il mouse sul contenitore, le frecce appaiono */
+        #hourlyContainer:hover .arrow-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Nascondi le frecce su mobile (touch) dove non serve l'hover */
+        @media (max-width: 640px) {
+            .arrow-btn { display: none !important; }
+        }
+
     </style>
 </head>
 <body class="antialiased">
@@ -127,8 +146,25 @@
             <!-- Sezione Previsioni Orarie -->
             <div id="hourlyContainer" class="mt-8 hidden">
                 <h3 class="text-[10px] font-bold uppercase tracking-widest text-indigo-300 mb-4 ml-1">Previsioni prossime ore</h3>
-                <div id="hourlyList" class="flex gap-4 overflow-x-auto pb-4 no-scrollbar scroll-smooth">
-                    <!-- Card orarie caricate da JS -->
+                
+                <div class="relative flex items-center">
+                    <!-- Freccia sinistra -->
+                    <button onclick="scrollHourly('left')" 
+                        class="arrow-btn absolute left-0 z-50 bg-indigo-600 p-1.5 rounded-full shadow-xl border border-white/20 hover:bg-indigo-500">
+                        <i data-lucide="chevron-left" class="w-5 h-5 text-white"></i>
+                    </button>
+
+
+                    <div id="hourlyList" class="flex gap-4 overflow-x-auto pb-4 no-scrollbar scroll-smooth">
+                        <!-- Card orarie caricate da JS -->
+                    </div>
+
+                    <!-- Freccia Destra -->
+                    <button onclick="scrollHourly('right')" 
+                        class="arrow-btn absolute right-0 z-50 bg-indigo-600 p-1.5 rounded-full shadow-xl border border-white/20 hover:bg-indigo-500">
+                        <i data-lucide="chevron-right" class="w-5 h-5 text-white"></i>
+                    </button>
+
                 </div>
             </div>
 
@@ -310,6 +346,19 @@
                 document.getElementById('suggestions').classList.add('hidden');
             }
         });
+
+
+        function scrollHourly(direction) {
+            const list = document.getElementById('hourlyList');
+            // Calcoliamo quanto scorrere (es: la larghezza di 3 card)
+            const scrollAmount = 250; 
+            
+            if (direction === 'left') {
+                list.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+            } else {
+                list.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+            }
+        }
     </script>
 </body>
 </html>
