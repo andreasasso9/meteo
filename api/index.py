@@ -55,21 +55,28 @@ async def get_weather(lat: float, lon: float, name: str, admin: str = "", countr
         condizione, icona = WMO_CODES.get(curr["weather_code"], ("Sconosciuto", "help-circle"))
         temperatura = round(curr["temperature_2m"])
 
-        now_hour = curr["time"]
+        ora_attuale_citta = curr["time"]
+        ora_attuale_citta = ora_attuale_citta[:13] + ":00"
 
         try:
-            start_index = hourly["time"].index(now_hour)
+            # Cerchiamo la posizione esatta della stringa dell'ora attuale 
+            # all'interno della lista dei tempi orari
+            start_index = hourly["time"].index(ora_attuale_citta)
         except ValueError:
-            start_index = 0  # Se non troviamo l'ora esatta, partiamo dall'inizio
+            # Se per qualche motivo non la trova, partiamo dall'indice 0 
+            # (ma con timezone=auto nell'URL è quasi impossibile)
+            start_index = 0
 
         forecast_orario = []
+
         for i in range(start_index, start_index + 8):
             if i < len(hourly["time"]):
                 time_str = hourly["time"][i]
-                ora = time_str.split("T")[1][:5]  # Prende "14:00"
+                # Estraiamo solo l'ora (es. "11:00") dalla stringa ISO
+                ora = time_str.split("T")[1][:5]
                 
                 codice_wmo = hourly["weather_code"][i]
-                _, ico = WMO_CODES.get(codice_wmo, ("Sereno", "sun"))
+                cond, ico = WMO_CODES.get(codice_wmo, ("Sereno", "sun"))
                 
                 forecast_orario.append({
                     "ora": ora,
