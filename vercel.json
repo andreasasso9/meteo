@@ -5,6 +5,10 @@
       "destination": "/api/index.py"
     },
     {
+      "source": "/style/(.*)",
+      "destination": "/style/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

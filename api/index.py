@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 import httpx
+from fastapi.staticfiles import StaticFiles
 
 from google import genai
 import json
@@ -14,6 +15,13 @@ app = FastAPI()
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=GEMINI_API_KEY)
+
+# Trova la cartella principale del progetto
+current_dir = os.path.dirname(os.path.realpath(__file__)) # cartella /api
+root_dir = os.path.dirname(current_dir) # cartella principale /
+
+# Monta la cartella 'style' in modo che sia accessibile via URL /style
+app.mount("/style", StaticFiles(directory=os.path.join(root_dir, "style")), name="style")
 
 WMO_CODES = {
     0: ("Soleggiato", "sun"), 1: ("Quasi Sereno", "cloud-sun"), 2: ("Parz. Nuvoloso", "cloud-sun"),
