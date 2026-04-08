@@ -22,6 +22,7 @@ root_dir = os.path.dirname(current_dir) # cartella principale /
 
 # Monta la cartella 'style' in modo che sia accessibile via URL /style
 app.mount("/style", StaticFiles(directory=os.path.join(root_dir, "style")), name="style")
+app.mount("/script", StaticFiles(directory=os.path.join(root_dir, "script")), name="script")
 
 WMO_CODES = {
     0: ("Soleggiato", "sun"), 1: ("Quasi Sereno", "cloud-sun"), 2: ("Parz. Nuvoloso", "cloud-sun"),
